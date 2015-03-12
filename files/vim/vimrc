@@ -1,0 +1,1163 @@
+" Echo startup time on start {{{
+if has('vim_starting') && has('reltime')
+  " Shell: vim --startuptime {filename} -q; vim {filename}
+  " vim --cmd 'profile start profile.txt' --cmd 'profile file $HOME/.vimrc' +q && vim profile.txt
+  let s:startuptime = reltime()
+    autocmd VimEnter * let s:startuptime = reltime(s:startuptime) | redraw
+    \ | echomsg 'startuptime: ' . reltimestr(s:startuptime)
+endif
+
+if has('vim_starting')
+   set runtimepath+=~/.vim/bundle/neobundle.vim/
+endif
+
+call neobundle#begin(expand('~/.vim/bundle/'))
+
+set ttyfast
+
+" =========================================================================== "
+"                                   Plugins                                   "
+" =========================================================================== "
+
+NeoBundleFetch 'Shougo/neobundle.vim'
+
+" Maybe useful
+" NeoBundle 'mattn/zencoding-vim'
+" NeoBundle 'skammer/vim-css-color'
+" NeoBundle 'takac/semi.vim'
+" NeoBundle 'majutsushi/tagbar'                  " outline objects etc
+
+" Pretty Colors
+NeoBundle 'chriskempson/base16-vim'              " base-16 color scheme
+NeoBundle 'peaksea'                              " peaksea, good for console
+NeoBundle 'altercation/vim-colors-solarized.git' " solarized color scheme
+NeoBundle 'kien/rainbow_parentheses.vim'         " make my brackets pretty colors
+NeoBundle 'Yggdroot/indentLine'
+NeoBundle 'whatyouhide/vim-gotham'
+
+NeoBundle 'chase/vim-ansible-yaml'
+NeoBundle 'bling/vim-airline'                    " better status line
+NeoBundle 'conradirwin/vim-bracketed-paste'      " Sane pasting in insert mode
+NeoBundle 'godlygeek/tabular'                    " formatter
+NeoBundle 'guns/vim-clojure-static'              " add clojure syntax highlight
+NeoBundle 'Lokaltog/vim-easymotion'              " movement plugin
+NeoBundle 'kien/ctrlp.vim'                       " fuzzy file finder
+NeoBundle 'mhinz/vim-signify'                    " gutter showing git changes
+NeoBundle 'nvie/vim-flake8'                      " PEP8 Checks
+NeoBundle 'rking/ag.vim'                         " search with ag in vim
+NeoBundle 'scrooloose/syntastic'                 " syntax checker
+NeoBundle 'sjl/gundo.vim'                        " visual undo tree
+NeoBundle 'chrisbra/sudoedit.vim'                " do sudo write and read in vim
+NeoBundle 'takac/ultisnips'                      " tab completions and snippets
+NeoBundle 'takac/vim-commandcaps'                " correct mistyped commands like :Wq
+NeoBundle 'takac/vim-fontmanager'                " manage fonts easily
+NeoBundle 'takac/vim-hardtime'                   " deter using repeative keys
+NeoBundle 'thinca/vim-quickrun'                  " Quickly run scripts in vim
+NeoBundle 'tpope/vim-commentary'                 " Add operator for adding comments
+NeoBundle 'tpope/vim-fugitive'                   " Git integration
+NeoBundle 'tpope/vim-repeat'                     " Repeat more commands
+NeoBundle 'tpope/vim-rsi'                        " Readline mappings for insert and command mode
+NeoBundle 'tpope/vim-surround'                   " mappings for wrapping objects
+NeoBundle 'vim-scripts/scratch.vim'              " Easy tmp buffer
+NeoBundle 'wellle/targets.vim'                   " jump to more objects
+
+call neobundle#end()
+
+" =========================================================================== "
+"                                 System Setup                                "
+" =========================================================================== "
+
+" Basic functionality
+filetype plugin on
+filetype indent on
+syntax on
+set omnifunc=syntaxcomplete#Complete
+
+"Set colours and fonts
+if has("gui_running")
+    set background=dark
+    color solarized
+    if has("gui_macvim")
+        set guifont=Inconsolata:h17
+    elseif has("gui_gtk2")
+        set guifont=Inconsolata\ for\ Powerline\ Medium\ 13
+    elseif has("gui_win32") || has("gui_win64")
+        set guifont=Consolas:h11:cANSI
+    endif
+else
+    set background=dark
+    silent! color peaksea
+endif
+
+set pastetoggle=<F12>                " pastetoggle (sane indentation on pastes)
+
+" Set cross system compatibility
+if has("unix")
+    let s:uname = system("uname")
+    if s:uname == "Darwin\n"
+        " remap as F12 is hard to press on mac
+        set pastetoggle=<leader>p
+        let mapleader="§"
+    else
+    endif
+endif
+
+highlight ExtraWhitespace ctermbg=red guibg=red
+match ExtraWhitespace /\s\+\%#\@<!$/
+
+" =========================================================================== "
+"                                 Plugin Config                               "
+" =========================================================================== "
+
+let g:indentLine_enabled = 0
+let g:commandcaps_override = 1
+
+" Syntastic Config
+let g:syntastic_mode_map = { 'mode': 'passive' }
+let g:syntastic_javascript_checkers = ['jslint']
+let g:syntastic_error_symbol='✗'
+let g:syntastic_warning_symbol='⚠'
+
+" Hardtime config
+let g:hardtime_ignore_buffer_patterns = [ "N[EeA]RD.*", ".*git/index" ]
+let g:hardtime_showmsg = 1
+
+" Rainbow Parens!
+au VimEnter * call TryCommand("RainbowParenthesesToggle")
+au Syntax * call TryCommand("RainbowParenthesesLoadBraces")
+au Syntax * call TryCommand("RainbowParenthesesLoadRound")
+
+" Airline conf
+set laststatus=2
+let g:airline_powerline_fonts=1
+let g:airline_theme="gotham256"
+
+" Easy motion config
+let g:EasyMotion_leader_key = '<Space>'
+let g:EasyMotion_smartcase = 1
+map <Space>J <Plug>(easymotion-eol-j)
+map <Space>K <Plug>(easymotion-eol-k)
+map <Space>l <Plug>(easymotion-lineforward)
+map <Space>h <Plug>(easymotion-linebackward)
+map <Space><Space> <Plug>(easymotion-bd-jk)
+
+" Ctrl p config
+let g:ctrlp_extensions=['line']
+let g:ctrlp_clear_cache_on_exit = 1
+let g:ctrlp_custom_ignore = {
+\ 'file': '\v\.(exe|so|dll|class)$',
+\ 'dir':  '\v<(\.git|\.hg|\.svn|\.vim|\.config)[\/]'
+\ }
+
+" Ultisnips
+let g:UltiSnipsSnippetsDir = '~/.vim/bundle/ultisnips/UltiSnips'
+set runtimepath+=~/.vim/bundle/ultisnips/UltiSnips
+let g:UltiSnipsEditSplit = 'vertical'
+
+" Add spacing in front of comment symbols
+let NERDSpaceDelims=1
+
+" Helpful Expansions
+" expand to current dir of file
+cabbr <expr> %% expand('%:p:h')
+cabbr <expr> %d expand('%:p:h')
+" expand current file
+cabbr <expr> %f expand('%')
+" expand to home
+cabbr <expr> %h expand('$HOME')
+
+set tags+=.git/ctags
+
+" =========================================================================== "
+"                                 Remappings                                  "
+" =========================================================================== "
+
+" select pasted text
+noremap gV `[v`]
+
+" Make a simple "search" text object.
+vnoremap <silent> x //e<C-r>=&selection=='exclusive'?'+1':''<CR><CR>
+    \:<C-u>call histdel('search',-1)<Bar>let @/=histget('search',-1)<CR>gv
+omap x :normal vs<CR>
+
+cnoremap <C-LEFT> <S-LEFT>
+
+nnoremap Q <nop>
+nnoremap K <nop>
+nnoremap <leader>e :e ~/.vimrc<CR>
+nnoremap <leader>l :set list!<CR>
+nnoremap <leader>tn :tabnew<CR>
+nnoremap <silent> <F3> :NERDTreeToggle<CR>
+nnoremap <silent> <F4> :set hlsearch!<CR>
+nnoremap <silent> <leader><CR> :set hlsearch!<CR>
+nnoremap <silent> <F7> :set spell!<CR>
+nnoremap <silent> <F8> :TagbarToggle<CR>
+
+" Use current selection for Acking all files in cwd
+vnoremap <silent> <leader>a :<C-U>let @/=GetVisual()<CR> :set hls<CR>:Ag "<C-R>/"<CR>
+nnoremap <silent> <leader>a :let @/='<C-R>=expand("<cword>")<CR>'<CR>:Ag <cword><CR>:set hls<CR>
+
+" Searching with visual selections
+vnoremap <silent> * :call VisualSelectionSearch()<CR>
+vnoremap <silent> # :call VisualSelectionSearch()<CR>
+
+" Put word under cursor into search register and highlight
+nnoremap <silent> * :call DoSearch(expand("<cword>"))<CR>
+nnoremap <silent> # :call NormalSearch(expand("<cword>"))<CR>
+
+" Navigate through wrapped lines
+noremap j gj
+noremap k gk
+noremap gj j
+noremap gk k
+
+" Show the stack of syntax hilighting classes affecting whatever is under the
+" cursor.
+nnoremap <leader>sn :SyntaxHighlighting<CR>
+
+" Evaluate calculation highlighted and replace with answer!
+" Try it now:
+" 2+88*3
+" 266
+vnoremap Z s<C-R>=eval(substitute("<C-R>"", "\r", "", ""))<CR><ESC>
+
+" Useful location list search. Find current word in buffer and populate
+" location list and show location list. To close location list use :lcl[ose]
+nnoremap <silent> <leader>f :<C-U>call setloclist(".", [])<CR>
+    \:g/<C-R>=expand("<cword>")<CR>/laddexpr expand("%") .
+    \ ":" . line(".") .  ":" . getline(".")<CR>
+    \:lw<CR>
+    \:exec "nnoremap <silent> <buffer> q :lcl<CR>"
+
+" Use visual selection for search
+vnoremap <silent> <leader>f :normal *<CR>
+    \:g/<C-R>//laddexpr expand("%") .
+    \ ":" . line(".") .  ":" . getline(".")<CR>
+    \:lw<CR>
+    \:nnoremap <silent> <buffer> q :lcl<CR>
+
+" Git merge symbols search
+nnoremap <leader>i /^\(<<<<<<<\\|=======$\\|>>>>>>>\)<CR>
+
+" =========================================================================== "
+"                                   Autocmds                                  "
+" =========================================================================== "
+
+
+autocmd FileType yaml IndentLinesEnable
+autocmd FileType yaml set shiftwidth=2 tabstop=2
+
+" When vimrc is edited, reload it
+autocmd! bufwritepost .vimrc source ~/.vimrc
+
+" Hide imports for java files
+autocmd! BufEnter *.java :setlocal foldexpr=HideImportFold(v:lnum) foldmethod=expr foldlevel=0
+autocmd! FileType *.py :setlocal foldexpr=HideCopyRight(v:lnum) foldmethod=expr foldlevel=0
+
+" check my english
+autocmd FileType rst set spell
+autocmd FileType rst set spelllang=en
+autocmd FileType rst set tw=79
+autocmd FileType md set spell
+autocmd FileType md set spelllang=en
+autocmd FileType markdown set spell
+autocmd FileType markdown set spelllang=en
+autocmd FileType gitcommit set spell
+
+" Restore cursor on load file
+augroup resCur
+    autocmd!
+    autocmd BufWinEnter * call ResCur()
+augroup END
+
+" =========================================================================== "
+"                                   Commands                                  "
+" =========================================================================== "
+
+
+" Synonym for Remove.. I can't always remember which one!
+command! -nargs=0 -range DeleteTrailingWhiteSpace <line1>,<line2>call RemoveTrailingWhiteSpace()
+command! -nargs=0 -range RemoveTrailingWhiteSpace <line1>,<line2>call RemoveTrailingWhiteSpace()
+
+command! -nargs=0 SyntaxHighlighting call SynStack()
+
+
+" =========================================================================== "
+"                                   Functions                                 "
+" =========================================================================== "
+
+nnoremap gb :call FuzzyFileFind()<CR>
+
+function! FuzzyFileFind()
+    " let line = line(".")
+    " let col = co
+    let pos = getpos('.')
+    " echo 'line: ' . pos[1] . ', col: ' . pos[2]
+    let name = expand("<cWORD>")
+    let f = system('find . -iname "*' . name  . '*"
+                \ -not \( -path "*/.git/*" -prune \)
+                \ -not \( -path "*/build/*" -prune \)
+                \ -not \( -iname "*.pyc" -prune \)
+                \ -not \( -path "*/.venv/*" -prune \) -print -quit')
+    exec "edit " . f
+endfunction
+
+" Execute search with pattern
+function! DoSearch(pattern)
+    let l:escaped_pattern = escape(a:pattern, '\\/.*$^~[]')
+    let l:escaped_pattern = substitute(l:escaped_pattern, "\n$", "", "")
+
+    " Don't use default behaviour for matching boundaries
+    " execute "normal ?\\<" . l:pattern . "\\>"
+    " let @/ = "\\<" . l:pattern . "\\>"
+
+    execute "normal ?" . l:escaped_pattern
+    let @/ = l:escaped_pattern
+    set hls
+endfunction
+
+" From visual selection execute search
+function! VisualSelectionSearch() range
+    let l:saved_reg = @"
+    execute "normal! vgvy"
+    call DoSearch(@")
+    let @" = l:saved_reg
+endfunction
+
+function! HideCopyRight(lnum)
+    if getline(a:lnum) =~ '^#'
+        return '1'
+    endif
+    return '0'
+endfunction
+
+function! HideImportFold(lnum)
+    if getline(a:lnum) =~ '^import'
+        return '1'
+    endif
+    if getline(a:lnum) =~ '\v^\s*$'
+        return '-1'
+    endif
+    return '0'
+endfunction
+
+function! TryCommand(command_name)
+    if exists(":" . a:command_name)
+        execute ":" . a:command_name
+    endif
+endfunction
+
+function! GetVisual() range
+        let reg_save = getreg('"')
+        let regtype_save = getregtype('"')
+        let cb_save = &clipboard
+        set clipboard&
+        normal! ""gvy
+        let selection = getreg('"')
+        call setreg('"', reg_save, regtype_save)
+        let &clipboard = cb_save
+        return selection
+endfunction
+
+
+" Remove whitespace, keep position
+function! RemoveTrailingWhiteSpace() range
+    normal mzHmy
+    let l:range = a:firstline . "," . a:lastline
+    if a:firstline == a:lastline
+        let l:range = "%"
+    endif
+    silent! exec l:range . 's/\s\+$//g'
+    normal 'yz<CR>
+    normal `z
+endfunction
+
+" Show the stack of syntax hilighting classes affecting whatever is under the
+" cursor.
+function! SynStack()
+  echo join(map(synstack(line('.'), col('.')), 'synIDattr(v:val, "name")'), " > ")
+endfunc
+
+" Tell vim to remember certain things when we exit
+function! ResCur()
+    if line("'\"") <= line("$")
+        normal! g`"
+        return 1
+    endif
+endfunction
+
+" =========================================================================== "
+"                                Vim Switches                                 "
+" =========================================================================== "
+
+" set mouse=a " use mouse everywhere
+" set ttymouse=xterm2     " necessary for gnu screen & mouse
+
+set autoindent                      " indent at the same level of the previous line
+set backspace=eol,start,indent
+set backup                          " backups are nice ...
+set backupdir=~/.vim/backup//
+set clipboard+=unnamed              "
+set cmdheight=2                     " The commandbar height
+set cpoptions=aABceFsmq
+" set cursorline                    " highlight current line :set cul
+set directory=~/.vim/tmp//
+set hid                             " Change buffer - without saving
+set history=1000
+set ignorecase                      " Ignore case when searching
+set incsearch                       " Make search act like search in modern browsers
+set linebreak
+set listchars=tab:▸\ ,eol:¬,trail:●,extends:❯,precedes:❮
+set magic                           " Set magic on, for regular expressions
+set matchtime=2                     " How many tenths of a second to blink
+set wildignore+=*/target/*
+
+" AHH I NO MORE BELLS
+set noerrorbells visualbell t_vb=
+if has('autocmd')
+  autocmd GUIEnter * set visualbell t_vb=
+endif
+
+if exists(":FontSize")
+    FontSize 15
+endif
+
+"
+" Basic colouring and encoding
+set t_Co=256
+set encoding=utf-8
+
+set noexrc                          " Don't use local version of .(g)vimrc, .exrc
+set nolazyredraw                    " Don't redraw while executing macros
+set nowrap                          " Wrap long lines
+set nrformats-=octal                " Don't treat numbers starting with 0 as octal
+set number                          " Set line numbers
+set numberwidth=5                   " Show line numbers up to size 99999
+set report=0                        " Tell us when anything is changed via status line
+set ruler                           " Always show current positions along the bottom^
+set shiftwidth=4                    " Auto-indent amount when using cindent,
+set showcmd
+set showmatch                       " Show matching bracets when text indicator is over them
+set smartcase                       " Use smartcase searching
+set scrolloff=6                     " Minimal number of screen lines to keep above and below the cursor.
+set softtabstop=4                   " When hitting tab or backspace, how many spaces
+set expandtab
+set tabstop=4                       " An indentation every four columns
+set tabstop=4                       " Real tabs should be 4, and they will show with
+set tm=2500
+set undodir=~/.vim/undo//           " Where to save undo histories
+set undofile                        " So is persistent undo ...
+set undolevels=1000                 " How many undos
+set undoreload=10000                " Maximum number lines to save for undo on a buffer reload
+set whichwrap+=<,>,h,l
+set wildmenu                        " Turn on WiLd menu
+set matchpairs+=<:>                 " match, to be used with %
+
+" Sexy cursors
+set guicursor=n-c:block-Cursor-blinkon0
+set guicursor+=v:block-vCursor-blinkon0
+set guicursor+=i:ci-ver20-iCursor
+highlight iCursor guifg=white guibg=white
+hi MatchParen guifg=lightblue guibg=darkblue
+
+" Make those folders automatically if they don't already exist.
+if !isdirectory(expand(&undodir))
+    call mkdir(expand(&undodir), "p")
+endif
+if !isdirectory(expand(&backupdir))
+    call mkdir(expand(&backupdir), "p")
+endif
+if !isdirectory(expand(&directory))
+    call mkdir(expand(&directory), "p")
+endif
+
+set viminfo='10,\"100,:200,%,n~/.vim/viminfo
+"  '10  :  marks will be remembered for up to 10 previously edited files
+"  "100 :  will save up to 100 lines for each register
+"  :200  :  up to 200 lines of command-line history will be remembered
+"  %    :  saves and restores the buffer list
+"  n... :  where to save the viminfo files
+
+" thesaurus file
+" set thesaurus=~/git/thesaurus/mthesaur.txt
+
+" =========================================================================== "
+"                            Common Spelling mistakes                         "
+" =========================================================================== "
+
+iabbrev accesories accessories
+iabbrev Accesories Accessories
+iabbrev accomodate accommodate
+iabbrev Accomodate Accommodate
+iabbrev acheive achieve
+iabbrev Acheive Achieve
+iabbrev acheiving achieving
+iabbrev Acheiving Achieving
+iabbrev acn can
+iabbrev Acn Can
+iabbrev acommodate accommodate
+iabbrev Acommodate Accommodate
+iabbrev acommodated accommodated
+iabbrev Acommodated Accommodated
+iabbrev acomodate accommodate
+iabbrev Acomodate Accommodate
+iabbrev acomodated accommodated
+iabbrev Acomodated Accommodated
+iabbrev adn and
+iabbrev Adn And
+iabbrev adn and
+iabbrev Adn And
+iabbrev agian again
+iabbrev Agian Again
+iabbrev ahppen happen
+iabbrev Ahppen Happen
+iabbrev ahve have
+iabbrev Ahve Have
+iabbrev allready already
+iabbrev Allready Already
+iabbrev almsot almost
+iabbrev Almsot Almost
+iabbrev alos also
+iabbrev Alos Also
+iabbrev alot a lot
+iabbrev Alot A lot
+iabbrev alreayd already
+iabbrev Alreayd Already
+iabbrev alwasy always
+iabbrev Alwasy Always
+iabbrev amke make
+iabbrev Amke Make
+iabbrev anbd and
+iabbrev Anbd And
+iabbrev andthe and the
+iabbrev Andthe And the
+iabbrev aplyed applied
+iabbrev Aplyed Applied
+iabbrev appeares appears
+iabbrev Appeares Appears
+iabbrev artical article
+iabbrev Artical Article
+iabbrev aslo also
+iabbrev Aslo Also
+iabbrev audeince audience
+iabbrev Audeince Audience
+iabbrev audiance audience
+iabbrev Audiance Audience
+iabbrev awya away
+iabbrev Awya Away
+iabbrev bakc back
+iabbrev Bakc Back
+iabbrev balence balance
+iabbrev Balence Balance
+iabbrev baout about
+iabbrev Baout About
+iabbrev bcak back
+iabbrev Bcak Back
+iabbrev beacuse because
+iabbrev Beacuse Because
+iabbrev becasue because
+iabbrev Becasue Because
+iabbrev becomeing becoming
+iabbrev Becomeing Becoming
+iabbrev becuase because
+iabbrev Becuase Because
+iabbrev becuse because
+iabbrev Becuse Because
+iabbrev befoer before
+iabbrev Befoer Before
+iabbrev begining beginning
+iabbrev Begining Beginning
+iabbrev beleive believe
+iabbrev Beleive Believe
+iabbrev bianries binaries
+iabbrev Bianries Binaries
+iabbrev bianry binary
+iabbrev Bianry Binary
+iabbrev boxs boxes
+iabbrev Boxs Boxes
+iabbrev bve be
+iabbrev Bve Be
+iabbrev changeing changing
+iabbrev Changeing Changing
+iabbrev charachter character
+iabbrev Charachter Character
+iabbrev charcter character
+iabbrev Charcter Character
+iabbrev charcters characters
+iabbrev Charcters Characters
+iabbrev charecter character
+iabbrev Charecter Character
+iabbrev charector character
+iabbrev Charector Character
+iabbrev cheif chief
+iabbrev Cheif Chief
+iabbrev circut circuit
+iabbrev Circut Circuit
+iabbrev claer clear
+iabbrev Claer Clear
+iabbrev claerly clearly
+iabbrev Claerly Clearly
+iabbrev cna can
+iabbrev Cna Can
+iabbrev colection collection
+iabbrev Colection Collection
+iabbrev comany company
+iabbrev Comany Company
+iabbrev comapny company
+iabbrev Comapny Company
+iabbrev comittee committee
+iabbrev Comittee Committee
+iabbrev commitee committee
+iabbrev Commitee Committee
+iabbrev committe committee
+iabbrev Committe Committee
+iabbrev committy committee
+iabbrev Committy Committee
+iabbrev compair compare
+iabbrev Compair Compare
+iabbrev compleated completed
+iabbrev Compleated Completed
+iabbrev completly completely
+iabbrev Completly Completely
+iabbrev comunicate communicate
+iabbrev Comunicate Communicate
+iabbrev comunity community
+iabbrev Comunity Community
+iabbrev conected connected
+iabbrev Conected Connected
+iabbrev cotten cotton
+iabbrev Cotten Cotton
+iabbrev coudl could
+iabbrev Coudl Could
+iabbrev cpoy copy
+iabbrev Cpoy Copy
+iabbrev cxan can
+iabbrev Cxan Can
+iabbrev danceing dancing
+iabbrev Danceing Dancing
+iabbrev definately definitely
+iabbrev Definately Definitely
+iabbrev develope develop
+iabbrev Develope Develop
+iabbrev developement development
+iabbrev Developement Development
+iabbrev differant different
+iabbrev Differant Different
+iabbrev differnt different
+iabbrev Differnt Different
+iabbrev diffrent different
+iabbrev Diffrent Different
+iabbrev disatisfied dissatisfied
+iabbrev Disatisfied Dissatisfied
+iabbrev doese does
+iabbrev Doese Does
+iabbrev doign doing
+iabbrev Doign Doing
+iabbrev doller dollars
+iabbrev Doller Dollars
+iabbrev donig doing
+iabbrev Donig Doing
+iabbrev driveing driving
+iabbrev Driveing Driving
+iabbrev drnik drink
+iabbrev Drnik Drink
+iabbrev ehr her
+iabbrev Ehr Her
+iabbrev embarass embarrass
+iabbrev Embarass Embarrass
+iabbrev enviroment environment
+iabbrev Enviroment Environment
+iabbrev enviroment environment
+iabbrev Enviroment Environment
+iabbrev equippment equipment
+iabbrev Equippment Equipment
+iabbrev esle else
+iabbrev Esle Else
+iabbrev excitment excitement
+iabbrev Excitment Excitement
+iabbrev exmaple example
+iabbrev Exmaple Example
+iabbrev exmaples examples
+iabbrev Exmaples Examples
+iabbrev exprot export
+iabbrev Exprot Export
+iabbrev eyt yet
+iabbrev Eyt Yet
+iabbrev familar familiar
+iabbrev Familar Familiar
+iabbrev feild field
+iabbrev Feild Field
+iabbrev fianlly finally
+iabbrev Fianlly Finally
+iabbrev fidn find
+iabbrev Fidn Find
+iabbrev firts first
+iabbrev Firts First
+iabbrev follwo follow
+iabbrev Follwo Follow
+iabbrev follwoing following
+iabbrev Follwoing Following
+iabbrev foriegn foreign
+iabbrev Foriegn Foreign
+iabbrev foudn found
+iabbrev Foudn Found
+iabbrev foward forward
+iabbrev Foward Forward
+iabbrev freind friend
+iabbrev Freind Friend
+iabbrev frmo from
+iabbrev Frmo From
+iabbrev fro for
+iabbrev Fro For
+iabbrev fwe few
+iabbrev Fwe Few
+iabbrev gerat great
+iabbrev Gerat Great
+iabbrev geting getting
+iabbrev Geting Getting
+iabbrev giveing giving
+iabbrev Giveing Giving
+iabbrev goign going
+iabbrev Goign Going
+iabbrev gonig going
+iabbrev Gonig Going
+iabbrev govenment government
+iabbrev Govenment Government
+iabbrev gruop group
+iabbrev Gruop Group
+iabbrev grwo grow
+iabbrev Grwo Grow
+iabbrev haev have
+iabbrev Haev Have
+iabbrev happend happened
+iabbrev Happend Happened
+iabbrev haveing having
+iabbrev Haveing Having
+iabbrev hda had
+iabbrev Hda Had
+iabbrev helpfull helpful
+iabbrev Helpfull Helpful
+iabbrev herat heart
+iabbrev Herat Heart
+iabbrev hge he
+iabbrev Hge He
+iabbrev hismelf himself
+iabbrev Hismelf Himself
+iabbrev hsa has
+iabbrev Hsa Has
+iabbrev hsi his
+iabbrev Hsi His
+iabbrev hte the
+iabbrev Hte The
+iabbrev htere there
+iabbrev Htere There
+iabbrev htey they
+iabbrev Htey They
+iabbrev hting thing
+iabbrev Hting Thing
+iabbrev htink think
+iabbrev Htink Think
+iabbrev htis this
+iabbrev Htis This
+iabbrev hvae have
+iabbrev Hvae Have
+iabbrev hvaing having
+iabbrev Hvaing Having
+iabbrev idae idea
+iabbrev Idae Idea
+iabbrev idaes ideas
+iabbrev Idaes Ideas
+iabbrev ihs his
+iabbrev Ihs His
+iabbrev immediatly immediately
+iabbrev Immediatly Immediately
+iabbrev indecate indicate
+iabbrev Indecate Indicate
+iabbrev insted intead
+iabbrev Insted Intead
+iabbrev inthe in the
+iabbrev Inthe In the
+iabbrev iwll will
+iabbrev Iwll Will
+iabbrev iwth with
+iabbrev Iwth With
+iabbrev jsut just
+iabbrev Jsut Just
+iabbrev knwo know
+iabbrev Knwo Know
+iabbrev knwos knows
+iabbrev Knwos Knows
+iabbrev konw know
+iabbrev Konw Know
+iabbrev konws knows
+iabbrev Konws Knows
+iabbrev levle level
+iabbrev Levle Level
+iabbrev libary library
+iabbrev Libary Library
+iabbrev librarry library
+iabbrev Librarry Library
+iabbrev librarry library
+iabbrev Librarry Library
+iabbrev librery library
+iabbrev Librery Library
+iabbrev liek like
+iabbrev Liek Like
+iabbrev liekd liked
+iabbrev Liekd Liked
+iabbrev liev live
+iabbrev Liev Live
+iabbrev likly likely
+iabbrev Likly Likely
+iabbrev littel little
+iabbrev Littel Little
+iabbrev liuke like
+iabbrev Liuke Like
+iabbrev liveing living
+iabbrev Liveing Living
+iabbrev loev love
+iabbrev Loev Love
+iabbrev lonly lonely
+iabbrev Lonly Lonely
+iabbrev makeing making
+iabbrev Makeing Making
+iabbrev mkae make
+iabbrev Mkae Make
+iabbrev mkaes makes
+iabbrev Mkaes Makes
+iabbrev mkaing making
+iabbrev Mkaing Making
+iabbrev moeny money
+iabbrev Moeny Money
+iabbrev mroe more
+iabbrev Mroe More
+iabbrev mysefl myself
+iabbrev Mysefl Myself
+iabbrev myu my
+iabbrev Myu My
+iabbrev neccessary necessary
+iabbrev Neccessary Necessary
+iabbrev necesary necessary
+iabbrev Necesary Necessary
+iabbrev nkow know
+iabbrev Nkow Know
+iabbrev nwe new
+iabbrev Nwe New
+iabbrev nwo now
+iabbrev Nwo Now
+iabbrev ocasion occasion
+iabbrev Ocasion Occasion
+iabbrev occassion occasion
+iabbrev Occassion Occasion
+iabbrev occurence occurrence
+iabbrev Occurence Occurrence
+iabbrev occurrance occurrence
+iabbrev Occurrance Occurrence
+iabbrev ocur occur
+iabbrev Ocur Occur
+iabbrev oging going
+iabbrev Oging Going
+iabbrev ohter other
+iabbrev Ohter Other
+iabbrev omre more
+iabbrev Omre More
+iabbrev onyl only
+iabbrev Onyl Only
+iabbrev opperation operation
+iabbrev Opperation Operation
+iabbrev optoin option
+iabbrev Optoin Option
+iabbrev optoins options
+iabbrev Optoins Options
+iabbrev orginized organized
+iabbrev Orginized Organized
+iabbrev otehr other
+iabbrev Otehr Other
+iabbrev otu out
+iabbrev Otu Out
+iabbrev owrk work
+iabbrev Owrk Work
+iabbrev peopel people
+iabbrev Peopel People
+iabbrev perhasp perhaps
+iabbrev Perhasp Perhaps
+iabbrev perhpas perhaps
+iabbrev Perhpas Perhaps
+iabbrev pleasent pleasant
+iabbrev Pleasent Pleasant
+iabbrev poeple people
+iabbrev Poeple People
+iabbrev porblem problem
+iabbrev Porblem Problem
+iabbrev preceed precede
+iabbrev Preceed Precede
+iabbrev preceeded preceded
+iabbrev Preceeded Preceded
+iabbrev probelm problem
+iabbrev Probelm Problem
+iabbrev protoge protege
+iabbrev Protoge Protege
+iabbrev puting putting
+iabbrev Puting Putting
+iabbrev pwoer power
+iabbrev Pwoer Power
+iabbrev quater quarter
+iabbrev Quater Quarter
+iabbrev questoin question
+iabbrev Questoin Question
+iabbrev reccomend recommend
+iabbrev Reccomend Recommend
+iabbrev reccommend recommend
+iabbrev Reccommend Recommend
+iabbrev receieve receive
+iabbrev Receieve Receive
+iabbrev recieve receive
+iabbrev Recieve Receive
+iabbrev recieved received
+iabbrev Recieved Received
+iabbrev recomend recommend
+iabbrev Recomend Recommend
+iabbrev reconize recognize
+iabbrev Reconize Recognize
+iabbrev recrod record
+iabbrev Recrod Record
+iabbrev reivew review
+iabbrev Reivew Review
+iabbrev religous religious
+iabbrev Religous Religious
+iabbrev reveiw review
+iabbrev Reveiw Review
+iabbrev rwite write
+iabbrev Rwite Write
+iabbrev rythm rhythm
+iabbrev Rythm Rhythm
+iabbrev seh she
+iabbrev Seh She
+iabbrev selectoin selection
+iabbrev Selectoin Selection
+iabbrev sentance sentence
+iabbrev Sentance Sentence
+iabbrev seperate separate
+iabbrev Seperate Separate
+iabbrev shineing shining
+iabbrev Shineing Shining
+iabbrev shiped shipped
+iabbrev Shiped Shipped
+iabbrev shoudl should
+iabbrev Shoudl Should
+iabbrev similiar similar
+iabbrev Similiar Similar
+iabbrev smae same
+iabbrev Smae Same
+iabbrev smoe some
+iabbrev Smoe Some
+iabbrev soem some
+iabbrev Soem Some
+iabbrev sohw show
+iabbrev Sohw Show
+iabbrev soudn sound
+iabbrev Soudn Sound
+iabbrev soudns sounds
+iabbrev Soudns Sounds
+iabbrev statment statement
+iabbrev Statment Statement
+iabbrev stnad stand
+iabbrev Stnad Stand
+iabbrev stopry story
+iabbrev Stopry Story
+iabbrev stoyr story
+iabbrev Stoyr Story
+iabbrev stpo stop
+iabbrev Stpo Stop
+iabbrev strentgh strength
+iabbrev Strentgh Strength
+iabbrev struggel struggle
+iabbrev Struggel Struggle
+iabbrev sucess success
+iabbrev Sucess Success
+iabbrev swiming swimming
+iabbrev Swiming Swimming
+iabbrev tahn than
+iabbrev Tahn Than
+iabbrev taht that
+iabbrev Taht That
+iabbrev talekd talked
+iabbrev Talekd Talked
+iabbrev tath that
+iabbrev Tath That
+iabbrev teh the
+iabbrev Teh The
+iabbrev tehy they
+iabbrev Tehy They
+iabbrev tghe the
+iabbrev Tghe The
+iabbrev thansk thanks
+iabbrev Thansk Thanks
+iabbrev themselfs themselves
+iabbrev Themselfs Themselves
+iabbrev theri their
+iabbrev Theri Their
+iabbrev thgat that
+iabbrev Thgat That
+iabbrev thge the
+iabbrev Thge The
+iabbrev thier their
+iabbrev Thier Their
+iabbrev thme them
+iabbrev Thme Them
+iabbrev thna than
+iabbrev Thna Than
+iabbrev thne then
+iabbrev Thne Then
+iabbrev thnig thing
+iabbrev Thnig Thing
+iabbrev thnigs things
+iabbrev Thnigs Things
+iabbrev thsi this
+iabbrev Thsi This
+iabbrev thsoe those
+iabbrev Thsoe Those
+iabbrev thta that
+iabbrev Thta That
+iabbrev tihs this
+iabbrev Tihs This
+iabbrev timne time
+iabbrev Timne Time
+iabbrev tje the
+iabbrev Tje The
+iabbrev tjhe the
+iabbrev Tjhe The
+iabbrev tkae take
+iabbrev Tkae Take
+iabbrev tkaes takes
+iabbrev Tkaes Takes
+iabbrev tkaing taking
+iabbrev Tkaing Taking
+iabbrev tlaking talking
+iabbrev Tlaking Talking
+iabbrev todya today
+iabbrev Todya Today
+iabbrev tongiht tonight
+iabbrev Tongiht Tonight
+iabbrev tonihgt tonight
+iabbrev Tonihgt Tonight
+iabbrev towrad toward
+iabbrev Towrad Toward
+iabbrev tpyo typo
+iabbrev Tpyo Typo
+iabbrev truely truly
+iabbrev Truely Truly
+iabbrev tyhat that
+iabbrev Tyhat That
+iabbrev tyhe the
+iabbrev Tyhe The
+iabbrev useing using
+iabbrev Useing Using
+iabbrev vacumme vacuum
+iabbrev Vacumme Vacuum
+iabbrev veyr very
+iabbrev Veyr Very
+iabbrev vrey very
+iabbrev Vrey Very
+iabbrev waht what
+iabbrev Waht What
+iabbrev watn want
+iabbrev Watn Want
+iabbrev wehn when
+iabbrev Wehn When
+iabbrev whcih which
+iabbrev Whcih Which
+iabbrev whic which
+iabbrev Whic Which
+iabbrev whihc which
+iabbrev Whihc Which
+iabbrev whta what
+iabbrev Whta What
+iabbrev wief wife
+iabbrev Wief Wife
+iabbrev wierd weird
+iabbrev Wierd Weird
+iabbrev wihch which
+iabbrev Wihch Which
+iabbrev wiht with
+iabbrev Wiht With
+iabbrev windoes windows
+iabbrev Windoes Windows
+iabbrev withe with
+iabbrev Withe With
+iabbrev wiull will
+iabbrev Wiull Will
+iabbrev wnat want
+iabbrev Wnat Want
+iabbrev wnated wanted
+iabbrev Wnated Wanted
+iabbrev wnats wants
+iabbrev Wnats Wants
+iabbrev woh who
+iabbrev Woh Who
+iabbrev wohle whole
+iabbrev Wohle Whole
+iabbrev wokr work
+iabbrev Wokr Work
+iabbrev woudl would
+iabbrev Woudl Would
+iabbrev wriet write
+iabbrev Wriet Write
+iabbrev wrod word
+iabbrev Wrod Word
+iabbrev wroking working
+iabbrev Wroking Working
+iabbrev wtih with
+iabbrev Wtih With
+iabbrev wya way
+iabbrev Wya Way
+iabbrev yera year
+iabbrev Yera Year
+iabbrev yeras years
+iabbrev Yeras Years
+iabbrev ytou you
+iabbrev Ytou You
+iabbrev yuo you
+iabbrev Yuo You
+iabbrev yuor your
+iabbrev Yuor Your
+
+" Days of weeks
+iabbrev monday Monday
+iabbrev Monday Monday
+iabbrev tuesday Tuesday
+iabbrev Tuesday Tuesday
+iabbrev wednesday Wednesday
+iabbrev Wednesday Wednesday
+iabbrev thursday Thursday
+iabbrev Thursday Thursday
+iabbrev friday Friday
+iabbrev Friday Friday
+iabbrev saturday Saturday
+iabbrev Saturday Saturday
+iabbrev sunday Sunday
+iabbrev Sunday Sunday
+
+" Months
+iabbrev january January
+iabbrev January January
+iabbrev february February
+iabbrev February February
+iabbrev march March
+iabbrev March March
+iabbrev april April
+iabbrev April April
+iabbrev june June
+iabbrev June June
+iabbrev july July
+iabbrev July July
+iabbrev august August
+iabbrev August August
+iabbrev september September
+iabbrev September September
+iabbrev october October
+iabbrev October October
+iabbrev november November
+iabbrev November November
+iabbrev december December
+iabbrev December December

@@ -1,0 +1,28 @@
+---
+- hosts: all
+  vars:
+    - vim_dir: ~/.vim
+
+  tasks:
+    - name: Install Vim
+      apt: name=vim state=present
+      sudo: yes
+
+    - name: Copy vimrc
+      copy: src=files/vim/vimrc dest=~/.vimrc
+      register: new_vimrc
+
+    - name: Make vim dirs
+      file: path={{ vim_dir }}/undo state=directory
+      file: path={{ vim_dir }}/backup state=directory
+      file: path={{ vim_dir }}/tmp state=directory
+
+    - name: Clone neobundle repo
+      git: repo=http://github.com/Shougo/neobundle.vim dest={{ vim_dir }}/bundle/neobundle.vim
+      when: new_vimrc.changed
+
+    - name: Install Vim plugins through neobundle
+      command: {{ vim_dir }}/bundle/neobundle.vim/bin/neoinstall
+      register: neoinstall
+      changed_when: not "no new bundles installed" in neoinstall.stderr
+      when: new_vimrc.changed
